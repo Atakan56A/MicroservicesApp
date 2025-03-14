@@ -17,11 +17,16 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting Gateway API");
-    // builder tanýmý...
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Ocelot servislerini ekleyin kýsmýndan önce ekleyin:
+    // Configuration dosyalarýný ekleyin
+    builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+    builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+    builder.Configuration.AddEnvironmentVariables();
+
+    // JWT Authentication yapýlandýrmasý
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -47,19 +52,19 @@ try
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("CorsPolicy",
-            builder => builder
+            policy => policy
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader());
     });
 
-    // Controller'larý ekleyin (Health check vb. için)
+    // Controller'larý ekleyin
     builder.Services.AddControllers();
 
-    // Controller'larý ekleyin kýsmýndan sonra ekleyin:
+    // Health checks ekleyin
     builder.Services.AddHealthChecks();
 
-    // builder.Host kýsmýna ekleyin:
+    // Serilog'u kullan
     builder.Host.UseSerilog();
 
     var app = builder.Build();
@@ -70,16 +75,25 @@ try
         app.UseDeveloperExceptionPage();
     }
 
+    //app.UseSerilog();
     app.UseCors("CorsPolicy");
+
+    // Önce endpoint'ler tanýmlanmalý
     app.UseRouting();
 
-    // Ocelot middleware'ini kullanýn kýsmýndan önce ekleyin:
+    // Authentication ve Authorization middleware'lerini ekleyin
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    // Özel endpoint'ler tanýmlanmalý - ÖNEMLÝ: UseOcelot'dan ÖNCE
     app.MapHealthChecks("/health", new HealthCheckOptions
     {
         ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
     });
 
-    // Ocelot middleware'ini kullanýn
+    app.MapControllers();
+
+    // Ocelot middleware'ini en son kullanýn
     await app.UseOcelot();
 
     app.Run();
