@@ -1,4 +1,4 @@
-﻿namespace Identity.API.Models.DTOs
+﻿namespace Identity.API.Models.Requests
 {
     public class RegisterModel
     {
@@ -7,6 +7,6 @@
         public string Password { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public int? TenantId { get; set; }
+        public Guid TenantId { get; set; }
     }
 }

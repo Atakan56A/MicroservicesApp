@@ -7,6 +7,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Identity.API.Models.Requests;
+using Identity.API.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Identity.API.Controllers
 {
@@ -16,88 +21,173 @@ namespace Identity.API.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
 
         public AuthController(
-            UserManager<ApplicationUser> userManager,
+             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext context,
             IConfiguration configuration)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
             _configuration = configuration;
         }
 
-        [HttpPost]
-        [Route("login")]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
-        {
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
-            {
-                var userRoles = await _userManager.GetRolesAsync(user);
-
-                var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
-
-                foreach (var userRole in userRoles)
-                {
-                    authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-                }
-
-                var token = CreateToken(authClaims);
-                var refreshToken = GenerateRefreshToken();
-
-                _ = int.TryParse(_configuration["JWT:RefreshTokenValidityInDays"], out int refreshTokenValidityInDays);
-
-                user.RefreshToken = refreshToken;
-                user.RefreshTokenExpiryTime = DateTime.Now.AddDays(refreshTokenValidityInDays);
-
-                await _userManager.UpdateAsync(user);
-
-                return Ok(new AuthResponseModel
-                {
-                    Token = new JwtSecurityTokenHandler().WriteToken(token),
-                    RefreshToken = refreshToken,
-                    Expiration = token.ValidTo,
-                    UserId = user.Id,
-                    Username = user.UserName,
-                    Roles = userRoles.ToList()
-                });
-            }
-            return Unauthorized();
-        }
-
-        [HttpPost]
-        [Route("register")]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            var userExists = await _userManager.FindByNameAsync(model.Username);
-            if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Status = "Error", Message = "User already exists!" });
-
-            ApplicationUser user = new()
+            try
             {
-                Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                TenantId = model.TenantId
-            };
+                var tenantExists = await _context.Tenants.AnyAsync(t => t.Id == model.TenantId);
+                if (!tenantExists) return BadRequest("Invalid Tenant");
 
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Status = "Error", Message = "User creation failed! Please check user details and try again." });
+                var user = new ApplicationUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    TenantId = model.TenantId,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    IsActive = true
+                };
 
-            return Ok(new { Status = "Success", Message = "User created successfully!" });
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                if (!result.Succeeded)
+                    return BadRequest(result.Errors);
+
+                await _userManager.AddToRoleAsync(user, "User");
+                return Ok(new { Message = "User created!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal error: {ex.Message}");
+            }
         }
 
-        private JwtSecurityToken CreateToken(List<Claim> authClaims)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Username);
+                if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
+                    return Unauthorized();
+
+                if (!user.IsActive)
+                    return Unauthorized(new { Message = "This account is disabled." });
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.GivenName, user.FirstName),
+                    new Claim(ClaimTypes.Surname, user.LastName),
+                    new Claim("TenantId", user.TenantId.ToString())
+                };
+                foreach (var role in roles) claims.Add(new Claim(ClaimTypes.Role, role));
+
+                var token = GenerateJwtToken(claims);
+                var refreshToken = GenerateRefreshToken();
+                await SaveRefreshToken(user.Id, refreshToken);
+
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(token),
+                    expiration = token.ValidTo,
+                    refreshToken = refreshToken.Token
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal error: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [HttpGet("user-info")]
+        public async Task<IActionResult> GetUserInfo()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null) return NotFound();
+
+                var roles = await _userManager.GetRolesAsync(user);
+                return Ok(new
+                {
+                    user.Email,
+                    user.TenantId,
+                    user.FirstName,
+                    user.LastName,
+                    Roles = roles
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
+        {
+            try
+            {
+                var principal = GetPrincipalFromExpiredToken(model.AccessToken);
+                var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                var user = await _userManager.FindByIdAsync(userId);
+                var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken && rt.UserId == userId);
+
+                if (user == null || storedToken == null || storedToken.Expires < DateTime.UtcNow)
+                    return BadRequest("Invalid token");
+
+                _context.RefreshTokens.Remove(storedToken);
+                var newRefreshToken = GenerateRefreshToken();
+                await SaveRefreshToken(user.Id, newRefreshToken);
+
+                var newJwtToken = GenerateJwtToken(principal.Claims.ToList());
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(newJwtToken),
+                    expiration = newJwtToken.ValidTo,
+                    refreshToken = newRefreshToken.Token
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal error: {ex.Message}");
+            }
+        }
+
+        private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"])),
+                ValidateLifetime = false // Süreyi ignore et
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+
+            // Token algoritmasını kontrol et
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("Invalid token");
+
+            return principal;
+        }
+
+        private JwtSecurityToken GenerateJwtToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
             _ = int.TryParse(_configuration["JWT:TokenValidityInMinutes"], out int tokenValidityInMinutes);
@@ -113,12 +203,47 @@ namespace Identity.API.Controllers
             return token;
         }
 
-        private static string GenerateRefreshToken()
+        private RefreshToken GenerateRefreshToken()
         {
-            var randomNumber = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
+            return new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
         }
+
+        private async Task SaveRefreshToken(string userId, RefreshToken refreshToken)
+        {
+            refreshToken.UserId = userId;
+            await _context.RefreshTokens.AddAsync(refreshToken);
+            await _context.SaveChangesAsync();
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenModel model)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                // Remove the refresh token from database
+                var refreshToken = await _context.RefreshTokens
+                    .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken && rt.UserId == userId);
+
+                if (refreshToken != null)
+                {
+                    _context.RefreshTokens.Remove(refreshToken);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Ok(new { Message = "Logged out successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal error: {ex.Message}");
+            }
+        }
+
     }
 }
