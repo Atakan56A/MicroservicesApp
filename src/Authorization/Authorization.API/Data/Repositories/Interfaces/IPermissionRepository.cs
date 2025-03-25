@@ -8,6 +8,6 @@ namespace Authorization.API.Data.Repositories.Interfaces
     public interface IPermissionRepository : IRepository<Permission>
     {
         Task<IEnumerable<Permission>> GetPermissionsByRoleIdAsync(Guid roleId);
-        Task<IEnumerable<Permission>> GetUserPermissionsAsync(Guid userId, Guid tenantId);
+        Task<IEnumerable<Permission>> GetUserPermissionsAsync(string userId, int tenantId);
     }
 }

@@ -8,7 +8,7 @@ namespace Authorization.API.Data.Repositories.Interfaces
     public interface IRoleRepository : IRepository<Role>
     {
         Task<Role> GetRoleWithPermissionsAsync(Guid roleId);
-        Task<IEnumerable<Role>> GetRolesByUserIdAsync(Guid userId, Guid tenantId);
+        Task<IEnumerable<Role>> GetRolesByUserIdAsync(string userId, int tenantId);
         Task AssignPermissionsToRoleAsync(Guid roleId, IEnumerable<Guid> permissionIds);
         Task RemovePermissionsFromRoleAsync(Guid roleId, IEnumerable<Guid> permissionIds);
     }

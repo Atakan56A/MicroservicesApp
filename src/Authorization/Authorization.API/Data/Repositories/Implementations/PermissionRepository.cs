@@ -25,7 +25,7 @@ namespace Authorization.API.Data.Repositories.Implementations
             return rolePermissions.Select(rp => rp.Permission);
         }
 
-        public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(Guid userId, Guid tenantId)
+        public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(string userId, int tenantId)
         {
             var userRoles = await _context.UserRoles
                 .Where(ur => ur.UserId == userId && ur.TenantId == tenantId)

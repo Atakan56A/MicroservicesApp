@@ -7,8 +7,8 @@ namespace Authorization.API.Data.Repositories.Interfaces
 {
     public interface IUserRoleRepository
     {
-        Task<IEnumerable<UserRole>> GetUserRolesByUserIdAsync(Guid userId, Guid tenantId);
-        Task<bool> AssignRolesToUserAsync(Guid userId, Guid tenantId, IEnumerable<Guid> roleIds);
-        Task RemoveRolesFromUserAsync(Guid userId, Guid tenantId, IEnumerable<Guid> roleIds);
+        Task<IEnumerable<UserRole>> GetUserRolesByUserIdAsync(string userId, int tenantId);
+        Task<bool> AssignRolesToUserAsync(string userId, int tenantId, IEnumerable<Guid> roleIds);
+        Task<bool> RemoveRolesFromUserAsync(string userId, int tenantId, IEnumerable<Guid> roleIds);
     }
 }

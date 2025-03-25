@@ -15,7 +15,7 @@ namespace Authorization.API.Data.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<UserRole>> GetUserRolesByUserIdAsync(Guid userId, Guid tenantId)
+        public async Task<IEnumerable<UserRole>> GetUserRolesByUserIdAsync(string userId, int tenantId)
         {
             return await _context.UserRoles
                 .Where(ur => ur.UserId == userId && ur.TenantId == tenantId)
@@ -23,7 +23,7 @@ namespace Authorization.API.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
-        public async Task<bool> AssignRolesToUserAsync(Guid userId, Guid tenantId, IEnumerable<Guid> roleIds)
+        public async Task<bool> AssignRolesToUserAsync(string userId, int tenantId, IEnumerable<Guid> roleIds)
         {
             try
             {
@@ -31,9 +31,9 @@ namespace Authorization.API.Data.Repositories.Implementations
                 var existingRoles = await _context.UserRoles
                     .Where(ur => ur.UserId == userId && ur.TenantId == tenantId)
                     .ToListAsync();
-                
+
                 _context.UserRoles.RemoveRange(existingRoles);
-                
+
                 // Add new roles
                 foreach (var roleId in roleIds)
                 {
@@ -46,7 +46,7 @@ namespace Authorization.API.Data.Repositories.Implementations
                         CreatedAt = DateTime.UtcNow
                     });
                 }
-                
+
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -56,9 +56,24 @@ namespace Authorization.API.Data.Repositories.Implementations
             }
         }
 
-        public Task RemoveRolesFromUserAsync(Guid userId, Guid tenantId, IEnumerable<Guid> roleIds)
+        public async Task<bool> RemoveRolesFromUserAsync(string userId, int tenantId, IEnumerable<Guid> roleIds)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Remove existing roles first
+                var existingRoles = _context.UserRoles
+                    .Where(ur => ur.UserId == userId && ur.TenantId == tenantId)
+                    .ToList();
+
+                _context.UserRoles.RemoveRange(existingRoles);
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

@@ -23,7 +23,7 @@ namespace Authorization.API.Data.Repositories.Implementations
                 .FirstOrDefaultAsync(r => r.Id == roleId);
         }
 
-        public async Task<IEnumerable<Role>> GetRolesByUserIdAsync(Guid userId, Guid tenantId)
+        public async Task<IEnumerable<Role>> GetRolesByUserIdAsync(string userId, int tenantId)
         {
             var userRoles = await _context.UserRoles
                 .Where(ur => ur.UserId == userId && ur.TenantId == tenantId)
