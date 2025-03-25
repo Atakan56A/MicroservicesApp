@@ -6,11 +6,13 @@ namespace Identity.API.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        // Tenant entegrasyonu için eklenenler
-        public Guid TenantId { get; set; }
-        public virtual Tenant Tenant { get; set; }
+        public string AvatarUrl { get; set; }
+        // Tenant entegrasyonu iï¿½in eklenenler
+        public int TenantId { get; set; }
         public bool IsActive { get; set; } = true;
-        // RefreshToken iliþkisi (1-N iliþki)
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } 
+        public virtual Tenant Tenant { get; set; }
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; }
     }
 }

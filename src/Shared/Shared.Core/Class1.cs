@@ -1,4 +1,4 @@
-﻿namespace Shared.Core;
+﻿namespace MicroservicesApp.Shared;
 
 public class Class1
 {

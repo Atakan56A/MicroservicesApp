@@ -7,6 +7,6 @@
         public string Password { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public Guid TenantId { get; set; }
+        public int TenantId { get; set; }
     }
 }
