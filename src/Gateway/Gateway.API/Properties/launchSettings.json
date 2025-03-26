@@ -1,37 +1,32 @@
-﻿//{
-//  "$schema": "https://json.schemastore.org/launchsettings.json",
-//  "profiles": {
-//    "http": {
-//      "commandName": "Project",
-//      "dotnetRunMessages": true,
-//      "launchBrowser": false,
-//      "applicationUrl": "http://localhost:5113",
-//      "environmentVariables": {
-//        "ASPNETCORE_ENVIRONMENT": "Development"
-//      }
-//    },
-//    "https": {
-//      "commandName": "Project",
-//      "dotnetRunMessages": true,
-//      "launchBrowser": false,
-//      "applicationUrl": "https://localhost:7211;http://localhost:5113",
-//      "environmentVariables": {
-//        "ASPNETCORE_ENVIRONMENT": "Development"
-//      }
-//    }
-//  }
-//}
-{
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Gateway.API": {
+    "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "health",
       "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "launchUrl": "health",
+      "applicationUrl": "https://localhost:7000;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": false,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/health",
+      "publishAllPorts": true,
+      "useSSL": false
     }
   }
 }
