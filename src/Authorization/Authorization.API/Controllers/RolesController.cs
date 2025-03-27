@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Authorization.API.Controllers
 {
     [ApiController]
-    [Route("api/authorization/roles")]
+    [Route("api/roles")]
     [Authorize]
     public class RolesController : ControllerBase
     {
@@ -48,7 +48,7 @@ namespace Authorization.API.Controllers
             return NoContent();
         }
 
-        [HttpPost("{roleId}/assign-permissions")]
+        [HttpPost("{roleId}/permissions")]
         public async Task<IActionResult> AssignPermissions(Guid roleId, [FromBody] AssignPermissionsRequest request)
         {
             _logger.LogInformation("Assigning permissions to role with ID: {RoleId}", roleId);

@@ -25,6 +25,9 @@ services:
       - Services__Tenant=http://tenant-api
       - Services__Identity=http://identity-api
       - Services__Authorization=http://authorization-api
+      - Jwt__Key=YourVeryLongSecretKeyHereThatIsAtLeast256BitsLong
+      - Jwt__Issuer=http://identity-api
+      - Jwt__Audience=http://gateway-api
     depends_on:
       - tenant-api
       - identity-api
@@ -42,6 +45,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=TenantDb;User Id=sa;Password=Password123!;TrustServerCertificate=True;
+      - JWT__ValidIssuer=http://identity-api
+      - JWT__ValidAudience=http://gateway-api
+      - JWT__Secret=YourVeryLongSecretKeyHereThatIsAtLeast256BitsLong
     depends_on:
       - sqlserver
     networks:
@@ -58,6 +64,8 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=IdentityDB;User Id=sa;Password=Password123!;TrustServerCertificate=True;
       - JWT__ValidIssuer=http://identity-api
+      - JWT__ValidAudience=http://gateway-api
+      - JWT__Secret=YourVeryLongSecretKeyHereThatIsAtLeast256BitsLong
     depends_on:
       - sqlserver
     networks:
@@ -74,7 +82,9 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=AuthorizationDB;User Id=sa;Password=Password123!;TrustServerCertificate=True;
       - Services__Identity=http://identity-api
-      - JWT__ValidIssuer=http://authorization-api
+      - JWT__ValidIssuer=http://identity-api
+      - JWT__ValidAudience=http://gateway-api
+      - JWT__Secret=YourVeryLongSecretKeyHereThatIsAtLeast256BitsLong
     depends_on:
       - sqlserver
       - identity-api

@@ -20,15 +20,15 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/identity/{everything}",
+      "DownstreamPathTemplate": "/api/auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5001
+          "Host": "identity-api",
+          "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/identity/{everything}",
+      "UpstreamPathTemplate": "/api/auth/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "RateLimitOptions": {
         "ClientWhitelist": [],
@@ -39,19 +39,19 @@
       },
       "FileCacheOptions": {
         "TtlSeconds": 15,
-        "Region": "identityregion"
+        "Region": "authregion"
       }
     },
     {
-      "DownstreamPathTemplate": "/api/tenant/{everything}",
+      "DownstreamPathTemplate": "/api/tenants/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5002
+          "Host": "tenant-api",
+          "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/tenant/{everything}",
+      "UpstreamPathTemplate": "/api/tenants/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -59,15 +59,15 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/authorization/{everything}",
+      "DownstreamPathTemplate": "/api/permissions/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 5003
+          "Host": "authorization-api",
+          "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/authorization/{everything}",
+      "UpstreamPathTemplate": "/api/permissions/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -75,7 +75,23 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/auth/profile",
+      "DownstreamPathTemplate": "/api/roles/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "authorization-api",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/roles/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/auth/users/profile",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -83,11 +99,11 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/profile",
+      "UpstreamPathTemplate": "/api/auth/users/profile",
       "UpstreamHttpMethod": [ "GET", "PUT" ]
     },
     {
-      "DownstreamPathTemplate": "/api/auth/change-password",
+      "DownstreamPathTemplate": "/api/auth/users/change-password",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -95,11 +111,11 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/change-password",
+      "UpstreamPathTemplate": "/api/auth/users/change-password",
       "UpstreamHttpMethod": [ "PUT" ]
     },
     {
-      "DownstreamPathTemplate": "/api/auth/reset-password",
+      "DownstreamPathTemplate": "/api/auth/users/reset-password",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -107,11 +123,11 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/reset-password",
+      "UpstreamPathTemplate": "/api/auth/users/reset-password",
       "UpstreamHttpMethod": [ "POST" ]
     },
     {
-      "DownstreamPathTemplate": "/api/auth/forgot-password",
+      "DownstreamPathTemplate": "/api/auth/users/forgot-password",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -119,11 +135,11 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/forgot-password",
+      "UpstreamPathTemplate": "/api/auth/users/forgot-password",
       "UpstreamHttpMethod": [ "POST" ]
     },
     {
-      "DownstreamPathTemplate": "/api/auth/confirm-email",
+      "DownstreamPathTemplate": "/api/auth/users/confirm-email",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -131,11 +147,11 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/confirm-email",
+      "UpstreamPathTemplate": "/api/auth/users/confirm-email",
       "UpstreamHttpMethod": [ "GET" ]
     },
     {
-      "DownstreamPathTemplate": "/api/auth/profile/avatar",
+      "DownstreamPathTemplate": "/api/auth/users/avatar",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -143,7 +159,7 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/profile/avatar",
+      "UpstreamPathTemplate": "/api/auth/users/avatar",
       "UpstreamHttpMethod": [ "POST" ],
       "DangerousAcceptAnyServerCertificate": true
     }
